@@ -1,0 +1,50 @@
+name: Portfolio Pipeline Orchestrator
+
+on:
+  workflow_dispatch:
+
+jobs:
+  phase-1-traditional-qa:
+    name: "Phase 1: Traditional QA (${{ matrix.repo }})"
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - repo: calculator-playwright
+            workflow: ci.yml
+          - repo: saucedemo-playwright
+            workflow: ci.yml
+          - repo: restful-booker-restassured
+            workflow: ci.yml
+    steps:
+      - name: Trigger and wait for ${{ matrix.repo }}
+        uses: the-actions-org/workflow-dispatch@v4
+        with:
+          workflow: ${{ matrix.workflow }}
+          repo: sabrinajohanson/${{ matrix.repo }}
+          token: ${{ secrets.ORCHESTRATOR_PAT }}
+          wait-for-completion: true
+          wait-for-completion-timeout: 10m
+
+  phase-2-ai-qa:
+    name: "Phase 2: AI QA - mock only (${{ matrix.repo }})"
+    needs: phase-1-traditional-qa
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - repo: llm-test-case-generator
+            workflow: ci-mock.yml
+          - repo: llm-as-judge
+            workflow: ci-mock.yml
+    steps:
+      - name: Trigger and wait for ${{ matrix.repo }}
+        uses: the-actions-org/workflow-dispatch@v4
+        with:
+          workflow: ${{ matrix.workflow }}
+          repo: sabrinajohanson/${{ matrix.repo }}
+          token: ${{ secrets.ORCHESTRATOR_PAT }}
+          wait-for-completion: true
+          wait-for-completion-timeout: 10m
