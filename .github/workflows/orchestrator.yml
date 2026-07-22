@@ -114,6 +114,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
+      - name: Debug run IDs
+        run: |
+          echo "calculator: ${{ needs.dispatch-calculator.outputs.run-id }}"
+          echo "saucedemo: ${{ needs.dispatch-saucedemo.outputs.run-id }}"
+          echo "restful-booker: ${{ needs.dispatch-restful-booker.outputs.run-id }}"
+          echo "generator: ${{ needs.dispatch-generator.outputs.run-id }}"
+          echo "judge: ${{ needs.dispatch-judge.outputs.run-id }}"
+
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
