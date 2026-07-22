@@ -15,7 +15,7 @@ jobs:
     name: "Phase 1: calculator-playwright"
     runs-on: ubuntu-latest
     outputs:
-      run-id: ${{ steps.dispatch.outputs.runId }}
+      run-id: ${{ steps.dispatch.outputs.workflow-id }}
     steps:
       - name: Trigger and wait
         id: dispatch
@@ -31,7 +31,7 @@ jobs:
     name: "Phase 1: saucedemo-playwright"
     runs-on: ubuntu-latest
     outputs:
-      run-id: ${{ steps.dispatch.outputs.runId }}
+      run-id: ${{ steps.dispatch.outputs.workflow-id }}
     steps:
       - name: Trigger and wait
         id: dispatch
@@ -47,7 +47,7 @@ jobs:
     name: "Phase 1: restful-booker-restassured"
     runs-on: ubuntu-latest
     outputs:
-      run-id: ${{ steps.dispatch.outputs.runId }}
+      run-id: ${{ steps.dispatch.outputs.workflow-id }}
     steps:
       - name: Trigger and wait
         id: dispatch
@@ -66,7 +66,7 @@ jobs:
     needs: [dispatch-calculator, dispatch-saucedemo, dispatch-restful-booker]
     runs-on: ubuntu-latest
     outputs:
-      run-id: ${{ steps.dispatch.outputs.runId }}
+      run-id: ${{ steps.dispatch.outputs.workflow-id }}
     steps:
       - name: Trigger and wait
         id: dispatch
@@ -83,7 +83,7 @@ jobs:
     needs: [dispatch-calculator, dispatch-saucedemo, dispatch-restful-booker]
     runs-on: ubuntu-latest
     outputs:
-      run-id: ${{ steps.dispatch.outputs.runId }}
+      run-id: ${{ steps.dispatch.outputs.workflow-id }}
     steps:
       - name: Trigger and wait
         id: dispatch
