@@ -3,48 +3,175 @@ name: Portfolio Pipeline Orchestrator
 on:
   workflow_dispatch:
 
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
 jobs:
-  phase-1-traditional-qa:
-    name: "Phase 1: Traditional QA (${{ matrix.repo }})"
+  # ── PHASE 1: Traditional QA (parallel, independent jobs) ──────────────────
+
+  dispatch-calculator:
+    name: "Phase 1: calculator-playwright"
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - repo: calculator-playwright
-            workflow: ci.yml
-          - repo: saucedemo-playwright
-            workflow: ci.yml
-          - repo: restful-booker-restassured
-            workflow: ci.yml
+    outputs:
+      run-id: ${{ steps.dispatch.outputs.runId }}
     steps:
-      - name: Trigger and wait for ${{ matrix.repo }}
+      - name: Trigger and wait
+        id: dispatch
         uses: the-actions-org/workflow-dispatch@v4
         with:
-          workflow: ${{ matrix.workflow }}
-          repo: sabrinajohanson/${{ matrix.repo }}
+          workflow: ci.yml
+          repo: sabrinajohanson/calculator-playwright
           token: ${{ secrets.ORCHESTRATOR_PAT }}
           wait-for-completion: true
           wait-for-completion-timeout: 10m
 
-  phase-2-ai-qa:
-    name: "Phase 2: AI QA - mock only (${{ matrix.repo }})"
-    needs: phase-1-traditional-qa
+  dispatch-saucedemo:
+    name: "Phase 1: saucedemo-playwright"
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - repo: llm-test-case-generator
-            workflow: ci-mock.yml
-          - repo: llm-as-judge
-            workflow: ci-mock.yml
+    outputs:
+      run-id: ${{ steps.dispatch.outputs.runId }}
     steps:
-      - name: Trigger and wait for ${{ matrix.repo }}
+      - name: Trigger and wait
+        id: dispatch
         uses: the-actions-org/workflow-dispatch@v4
         with:
-          workflow: ${{ matrix.workflow }}
-          repo: sabrinajohanson/${{ matrix.repo }}
+          workflow: ci.yml
+          repo: sabrinajohanson/saucedemo-playwright
           token: ${{ secrets.ORCHESTRATOR_PAT }}
           wait-for-completion: true
           wait-for-completion-timeout: 10m
+
+  dispatch-restful-booker:
+    name: "Phase 1: restful-booker-restassured"
+    runs-on: ubuntu-latest
+    outputs:
+      run-id: ${{ steps.dispatch.outputs.runId }}
+    steps:
+      - name: Trigger and wait
+        id: dispatch
+        uses: the-actions-org/workflow-dispatch@v4
+        with:
+          workflow: ci.yml
+          repo: sabrinajohanson/restful-booker-restassured
+          token: ${{ secrets.ORCHESTRATOR_PAT }}
+          wait-for-completion: true
+          wait-for-completion-timeout: 10m
+
+  # ── PHASE 2: AI QA, mock only (parallel, after Phase 1 completes) ─────────
+
+  dispatch-generator:
+    name: "Phase 2: llm-test-case-generator (mock)"
+    needs: [dispatch-calculator, dispatch-saucedemo, dispatch-restful-booker]
+    runs-on: ubuntu-latest
+    outputs:
+      run-id: ${{ steps.dispatch.outputs.runId }}
+    steps:
+      - name: Trigger and wait
+        id: dispatch
+        uses: the-actions-org/workflow-dispatch@v4
+        with:
+          workflow: ci-mock.yml
+          repo: sabrinajohanson/llm-test-case-generator
+          token: ${{ secrets.ORCHESTRATOR_PAT }}
+          wait-for-completion: true
+          wait-for-completion-timeout: 10m
+
+  dispatch-judge:
+    name: "Phase 2: llm-as-judge (mock)"
+    needs: [dispatch-calculator, dispatch-saucedemo, dispatch-restful-booker]
+    runs-on: ubuntu-latest
+    outputs:
+      run-id: ${{ steps.dispatch.outputs.runId }}
+    steps:
+      - name: Trigger and wait
+        id: dispatch
+        uses: the-actions-org/workflow-dispatch@v4
+        with:
+          workflow: ci-mock.yml
+          repo: sabrinajohanson/llm-as-judge
+          token: ${{ secrets.ORCHESTRATOR_PAT }}
+          wait-for-completion: true
+          wait-for-completion-timeout: 10m
+
+  # ── CONSOLIDATED DASHBOARD ─────────────────────────────────────────────────
+
+  consolidate-report:
+    name: "Consolidated Dashboard"
+    needs:
+      - dispatch-calculator
+      - dispatch-saucedemo
+      - dispatch-restful-booker
+      - dispatch-generator
+      - dispatch-judge
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Download results.json - calculator-playwright
+        uses: actions/download-artifact@v5
+        with:
+          name: results-json
+          path: results/calculator-playwright
+          github-token: ${{ secrets.ORCHESTRATOR_PAT }}
+          repository: sabrinajohanson/calculator-playwright
+          run-id: ${{ needs.dispatch-calculator.outputs.run-id }}
+
+      - name: Download results.json - saucedemo-playwright
+        uses: actions/download-artifact@v5
+        with:
+          name: results-json
+          path: results/saucedemo-playwright
+          github-token: ${{ secrets.ORCHESTRATOR_PAT }}
+          repository: sabrinajohanson/saucedemo-playwright
+          run-id: ${{ needs.dispatch-saucedemo.outputs.run-id }}
+
+      - name: Download results.json - restful-booker-restassured
+        uses: actions/download-artifact@v5
+        with:
+          name: results-json
+          path: results/restful-booker-restassured
+          github-token: ${{ secrets.ORCHESTRATOR_PAT }}
+          repository: sabrinajohanson/restful-booker-restassured
+          run-id: ${{ needs.dispatch-restful-booker.outputs.run-id }}
+
+      - name: Download results.json - llm-test-case-generator
+        uses: actions/download-artifact@v5
+        with:
+          name: results-json
+          path: results/llm-test-case-generator
+          github-token: ${{ secrets.ORCHESTRATOR_PAT }}
+          repository: sabrinajohanson/llm-test-case-generator
+          run-id: ${{ needs.dispatch-generator.outputs.run-id }}
+
+      - name: Download results.json - llm-as-judge
+        uses: actions/download-artifact@v5
+        with:
+          name: results-json
+          path: results/llm-as-judge
+          github-token: ${{ secrets.ORCHESTRATOR_PAT }}
+          repository: sabrinajohanson/llm-as-judge
+          run-id: ${{ needs.dispatch-judge.outputs.run-id }}
+
+      - name: Generate consolidated dashboard
+        run: python scripts/generate_consolidated_dashboard.py
+
+      - name: Upload dashboard for Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dashboard/
+
+      - name: Deploy dashboard to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
