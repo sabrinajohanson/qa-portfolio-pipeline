@@ -28,6 +28,15 @@ def load_results():
 
 def build_repo_row(r):
     pass_rate = round((r["passed"] / r["total"]) * 100, 1) if r["total"] else 0
+
+    failures_html = ""
+    if r.get("failures"):
+        items = "".join(
+            f'<li><strong>{f["name"]}</strong>: {f.get("error_message", "")[:150]}</li>'
+            for f in r["failures"]
+        )
+        failures_html = f'<ul style="margin: 8px 0 0; padding-left: 18px; color: #f85149;">{items}</ul>'
+
     return f"""
     <div class="repo-row" data-open="false">
       <div class="repo-header">
@@ -43,6 +52,7 @@ def build_repo_row(r):
           <a href="{REPO_URLS[r['repo']]}" target="_blank">Repository</a> &middot;
           <a href="{ALLURE_URLS[r['repo']]}" target="_blank">Allure Report</a>
         </p>
+        {failures_html}
       </div>
     </div>
     """
