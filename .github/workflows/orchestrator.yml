@@ -175,6 +175,11 @@ jobs:
       - name: Generate consolidated dashboard
         run: python scripts/generate_consolidated_dashboard.py
 
+      - name: Send Teams summary notification
+        env:
+          TEAMS_WEBHOOK_URL: ${{ secrets.TEAMS_WEBHOOK_URL }}
+        run: python scripts/send_teams_summary.py
+
       - name: Upload dashboard for Pages
         uses: actions/upload-pages-artifact@v3
         with:
