@@ -19,6 +19,7 @@ jobs:
     steps:
       - name: Trigger and wait
         id: dispatch
+        continue-on-error: true
         uses: the-actions-org/workflow-dispatch@v4
         with:
           workflow: ci.yml
@@ -35,6 +36,7 @@ jobs:
     steps:
       - name: Trigger and wait
         id: dispatch
+        continue-on-error: true
         uses: the-actions-org/workflow-dispatch@v4
         with:
           workflow: ci.yml
@@ -51,6 +53,7 @@ jobs:
     steps:
       - name: Trigger and wait
         id: dispatch
+        continue-on-error: true
         uses: the-actions-org/workflow-dispatch@v4
         with:
           workflow: ci.yml
@@ -64,12 +67,14 @@ jobs:
   dispatch-generator:
     name: "Phase 2: llm-test-case-generator (mock)"
     needs: [dispatch-calculator, dispatch-saucedemo, dispatch-restful-booker]
+    if: always()
     runs-on: ubuntu-latest
     outputs:
       run-id: ${{ steps.dispatch.outputs.workflow-id }}
     steps:
       - name: Trigger and wait
         id: dispatch
+        continue-on-error: true
         uses: the-actions-org/workflow-dispatch@v4
         with:
           workflow: ci-mock.yml
@@ -81,12 +86,14 @@ jobs:
   dispatch-judge:
     name: "Phase 2: llm-as-judge (mock)"
     needs: [dispatch-calculator, dispatch-saucedemo, dispatch-restful-booker]
+    if: always()
     runs-on: ubuntu-latest
     outputs:
       run-id: ${{ steps.dispatch.outputs.workflow-id }}
     steps:
       - name: Trigger and wait
         id: dispatch
+        continue-on-error: true
         uses: the-actions-org/workflow-dispatch@v4
         with:
           workflow: ci-mock.yml
@@ -105,6 +112,7 @@ jobs:
       - dispatch-restful-booker
       - dispatch-generator
       - dispatch-judge
+    if: always()
     runs-on: ubuntu-latest
     environment:
       name: github-pages
@@ -113,14 +121,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
-
-      - name: Debug run IDs
-        run: |
-          echo "calculator: ${{ needs.dispatch-calculator.outputs.run-id }}"
-          echo "saucedemo: ${{ needs.dispatch-saucedemo.outputs.run-id }}"
-          echo "restful-booker: ${{ needs.dispatch-restful-booker.outputs.run-id }}"
-          echo "generator: ${{ needs.dispatch-generator.outputs.run-id }}"
-          echo "judge: ${{ needs.dispatch-judge.outputs.run-id }}"
 
       - name: Set up Python
         uses: actions/setup-python@v6
